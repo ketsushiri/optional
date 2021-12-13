@@ -19,7 +19,8 @@ So far if failed is set on `true` then the next computations won't be performed.
 ```c++
 Optional<std::string, int> some_function(int value)
 {
-    Optional<std::string, int> start (std::string("ok"), value); // the default values in contructor.
+    // the default values in contructor.
+    Optional<std::string, int> start (std::string("ok"), value);
     return ( start bind(std::string, int) arrow1
                    bind(std::string, int) arrow2
                    bind(std::string, int) arrow3 ); // etc. 
