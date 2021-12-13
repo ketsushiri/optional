@@ -46,7 +46,7 @@ inline __binder<L, R>& operator==(Optional<L, R>& lvalue, const __binder<L, R>& 
     // Here we must declare new __binder as we changing it's fields.
     // BUT, the another approach is declare some global dummy binder.
     // The problem is, that we have general Optional<L, R>, where L, R is type templates.
-    // Therefore need to thinks, because memory leaks...
+    // Therefore need to think really hard, because memory leaks...
     static __binder<L, R> new_binder; // memleak btw.
     if (lvalue.is_failed()) {
         new_binder.left_value = lvalue.left_value;
@@ -60,7 +60,7 @@ inline __binder<L, R>& operator==(Optional<L, R>& lvalue, const __binder<L, R>& 
 
 // The left binder (__binder == Optional<L,R>)
 template <class L, class R>
-inline Optional<L, R>& operator==(const __binder<L, R>& lbinder, Optional<L, R>(*arrow)(R))
+inline Optional<L, R>& operator==(__binder<L, R>& lbinder, Optional<L, R>(*arrow)(R))
 {
     // If the __failed is true, then computation sequence failed; 
     // therefore we shouldn't perform next computations.
@@ -69,6 +69,7 @@ inline Optional<L, R>& operator==(const __binder<L, R>& lbinder, Optional<L, R>(
         result.failed = true;
     else
         result = arrow(result.right_value);
+
     return result;
 }
 
@@ -130,16 +131,30 @@ Optional<std::string, int> inc(int value)
     return result;
 }
 
-signed main() {
+Optional<std::string, int> result() {
     int start_value;
     std::cin >> start_value;
 
+    // Init start value.
     Optional<std::string, int> start (std::string("ok"), start_value);
+
     // Here the sequence is.
-    start bind(std::string, int) inc
-          bind(std::string, int) inc
-          bind(std::string, int) inc
-          bind(std::string, int) inc;
+    // The binder is leaking every time it's constructor is called.
+    // Because the sequence is kinda like this:
+    //
+    // __binder() -> __binder() fields is set from left Optional
+    // -> __binder() with fields passed as a left binder -> new __binder initialised as static
+    // -> return refference of new __binder(), but the old one isn't destructed still.
+    //
+    // This is like the sequece of `Optional<L,R> bind(L,R) Arrow`
+    // If we bind the result next to some Arrow2, the sequece for __binder will be the same and we will get
+    //   another __binder() object in memory, on which no one points. Such cases...
+    
+    return ( start bind(std::string, int) inc
+                   bind(std::string, int) inc
+                   bind(std::string, int) inc
+                   bind(std::string, int) inc );
+
     /*
         inc :: Int -> Either Int String
         inc x =
@@ -152,7 +167,10 @@ signed main() {
         main = \x -> return x >>= inc >>= inc >>= inc >>= inc
             -- The same thing, but on the right language.
      */
+}
 
+signed main() {
+    Optional<std::string, int> res = result();
     return 0;
 }
 

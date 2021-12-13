@@ -10,6 +10,9 @@ class Optional {
     R right_value;
     L left_value;
     bool failed;
+
+    void left(L& value); // also set failed = true;
+    void right(R& value);
 };
 ```
 So far if failed is set on `true` then the next computations won't be performed. Otherwise we have `bind` (>>= in Haskell), which calls a function (which is right operand) with a `right_value` field value as an argument. Binder is working as it should work, but, because we have general type and the c-preprocessor don't know anything about types, we should call `bind` operator with an arguments (which is L and R types).
@@ -17,9 +20,11 @@ So far if failed is set on `true` then the next computations won't be performed.
 Optional<std::string, int> some_function(int value)
 {
     Optional<std::string, int> start (std::string("ok"), value); // the default values in contructor.
-    return ( start bind(std::string, int) arrow bind(std::string, int) arrow ); // ... 
+    return ( start bind(std::string, int) arrow1
+                   bind(std::string, int) arrow2
+                   bind(std::string, int) arrow3 ); // etc. 
 }
 ```
-Arrow above is function with type `int -> Optional<std::string, int>`, or, in general, `R -> Optional<L, R>`.
+Arrow above is a function with type `int -> Optional<std::string, int>`, or, in general, `R -> Optional<L, R>`.
 
 Oh, and there is also a memory leaks in `__binder` class, because it's too general. There is an approach to fix it, but it will become not so general... I don't like C++. Or C++ do not likes me... Anyway, check `optional.cpp` for more info. 
