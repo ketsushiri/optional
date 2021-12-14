@@ -11,21 +11,21 @@ class Optional {
     L left_value;
     bool failed;
 
-    void left(L& value); // also set failed = true;
-    void right(R& value);
+    Optional(L lvalue, R rvalue);
+
+    void left(L value); // also set failed = true;
+    void right(R value);
+    bool is_failed();
 };
 ```
-So far if failed is set on `true` then the next computations won't be performed. Otherwise we have `bind` (>>= in Haskell), which calls a function (which is right operand) with a `right_value` field value as an argument. Binder is working as it should work, but, because we have general type and the c-preprocessor don't know anything about types, we should call `bind` operator with an arguments (which is L and R types).
+So far, if failed is set on `true` then the next computations won't be performed. Otherwise we have `<<=` (>>= in Haskell), which calls a function (which is left operand) with a `right_value` field value as an argument. Binder is working as it should work, the main difference from Haskell's one is that it is right associative, so the sequence looks like this: 
 ```c++
 Optional<std::string, int> some_function(int value)
 {
-    // the default values in contructor.
+    // the default values in a contructor.
     Optional<std::string, int> start (std::string("ok"), value);
-    return ( start bind(std::string, int) arrow1
-                   bind(std::string, int) arrow2
-                   bind(std::string, int) arrow3 ); // etc. 
+    return h <<= g <<= f <<= start;
 }
 ```
-Arrow above is a function with type `int -> Optional<std::string, int>`, or, in general, `R -> Optional<L, R>`.
+Arrows above is a functions with type `int -> Optional<std::string, int>`, or, if in general, `R -> Optional<L, R>`. For more detailed explanation check `optional.cpp` sources.
 
-Oh, and there is also a memory leaks in `__binder` class, because it's too general. There is an approach to fix it, but it will become not so general... I don't like C++. Or C++ do not likes me... Anyway, check `optional.cpp` for more info. 
