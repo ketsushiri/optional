@@ -36,6 +36,8 @@ class Optional {
     bool is_failed();
 };
 
+/* Monadic interface realisation for Optional. */
+
 // * main bind operator. Right to left.
 //  ex: `arrow3 <<= arrow2 <<= arrow1 <<= value`
 template <class L, class R>
@@ -49,7 +51,19 @@ Optional<L, R> operator<<= (Optional<L, R>(*arrow)(R), Optional<L, R> value)
         : arrow(value.right_value);
 }
 
-// Trivial monad's methods realisation.
+// * kinda applicative interface. pure, not return.
+//      also the left value should be passed in constructor.
+//      I don't know how to make it more correct way...
+template <class L, class R>
+#ifdef INLINING
+inline
+#endif
+Optional<L, R> pure(const L& def_err_value, const R& value)
+{
+    return Optional<L, R> (def_err_value, value);
+}
+
+/* Trivial Either monad's methods realisation. */
 template <class L, class R>
 #ifdef INLINING
 inline
@@ -95,11 +109,10 @@ bool Optional<L, R>::is_failed()
 // * Kleisli arrow.
 inline Optional<std::string, int> inc(int value)
 {
-    Optional<std::string, int> result (std::string("ok"), value);
-    if (value > 10)
-        result.left(std::string("value is more than 10!"));
-    else
-        result.right(value + 1);
+    auto result = pure(std::string("ok"), value);
+    (value > 10)
+        ? result.left(std::string("value is more than 10!"))
+        : result.right(value + 1);
 
     std::cout << "Left: " << result.left_value
     << "; Right: " << result.right_value << std::endl;
@@ -112,7 +125,7 @@ inline Optional<std::string, int> run_test()
 {
     int start_value;
     std::cin >> start_value;
-    Optional<std::string, int> start (std::string("ok"), start_value);
+    auto start = pure(std::string("ok"), start_value);
 
     return inc <<= inc <<= inc <<= start;
 }
@@ -121,7 +134,8 @@ int main(int argc, char** argv)
 {
     auto result = run_test();
     std::cout << "Result left: " << result.left_value
-        << "; result right: " << result.right_value << std::endl;
+              << "; result right: " << result.right_value
+              << std::endl;
     return 0;
 }
 
