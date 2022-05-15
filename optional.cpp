@@ -1,49 +1,16 @@
 /*
     Simple C++ Either monad implementation.
-    
-    Main template class - Optional<L, R>.
-    Fail value and it's type on the left, right value and it's type on the right.
-
-    Monadic binder - overloaded '<<=' operator, which is right associative.
-        So the sequence will look like this:
-            `arrow2 <<= arrow1 <<= value`
-
-    The first right value should be type Optional<L, R>.
-    The arrows should be Kleisli arrows for Either monad, as it is defined in Haskell:
-        general monad binder: (>>=) :: Monad m => m a -> (a -> m b) -> m b
-        monad binder for (Either e) :: Either e a -> (a -> Either e b) -> Either e b
-
-    If any single computation in a sequence is failed, then the next computations won't be performed.
- */
+    If any computation in the sequence is failed, then next one won't be performed.
+*/
 
 #include<iostream>
+#include"optional.hpp"
 
-// Inline flag if we are not exporting anything.
-#define INLINING
+/* Monadic interface. */
 
-// * not Either, but Optional.
+/* Binder, but from right to left.
+   Sequence e.g.: arrow3 <<= arrow2 <<= arrow1 <<= value */
 template <class L, class R>
-class Optional {
-  public:
-    L left_value;
-    R right_value;
-    bool failed; // is true, then next computations won't be performed.
-
-    Optional(L lvalue, R rvalue);
-
-    void left(L lvalue);
-    void right(R rvalue);
-    bool is_failed();
-};
-
-/* Monadic interface realisation for Optional. */
-
-// * main bind operator. Right to left.
-//  ex: `arrow3 <<= arrow2 <<= arrow1 <<= value`
-template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 Optional<L, R> operator<<= (Optional<L, R>(*arrow)(R), Optional<L, R> value)
 {
     return (value.is_failed())
@@ -51,23 +18,15 @@ Optional<L, R> operator<<= (Optional<L, R>(*arrow)(R), Optional<L, R> value)
         : arrow(value.right_value);
 }
 
-// * kinda applicative interface. pure, not return.
-//      also the left value should be passed in constructor.
-//      I don't know how to make it more correct way...
+/* 'pure' instead of 'return'.
+   Default left value should be passed in a constructor. */
 template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 Optional<L, R> pure(const L& def_err_value, const R& value)
 {
     return Optional<L, R> (def_err_value, value);
 }
 
-/* Trivial Either monad's methods realisation. */
 template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 Optional<L, R>::Optional(L lvalue, R rvalue)
 {
     left_value  = lvalue;
@@ -76,9 +35,6 @@ Optional<L, R>::Optional(L lvalue, R rvalue)
 }
 
 template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 void Optional<L, R>::left(L lvalue)
 {
     failed     = true;
@@ -86,27 +42,20 @@ void Optional<L, R>::left(L lvalue)
 }
 
 template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 void Optional<L, R>::right(R rvalue)
 {
     right_value = rvalue;
 }
 
-// * the OOP style method for fields access, I guess...
 template <class L, class R>
-#ifdef INLINING
-inline
-#endif
 bool Optional<L, R>::is_failed()
 {
     return failed;
 }
 
-// Usage examples
-//
-// * Kleisli arrow.
+/* Usage examples */
+
+// Kleisli arrow. :: (int -> m int)
 inline Optional<std::string, int> inc(int value)
 {
     auto result = pure(std::string("ok"), value);
@@ -119,8 +68,7 @@ inline Optional<std::string, int> inc(int value)
     return result;
 }
 
-// * simple test usage.
-// * bind opeartor is right to left.
+// Simple example.
 inline Optional<std::string, int> run_test()
 {
     int start_value;
